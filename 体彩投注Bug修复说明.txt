@@ -1,0 +1,152 @@
+体彩投注Bug修复说明
+=====================
+版本更新加v 1997835 注明世界杯
+=========================
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+## 问题现象
+在体彩玩法(胜负平/总进球数/比分)中点击投注按钮时:
+1. 赔率显示为 "@1.95" 错误值
+2. 预计返还显示为 "NaN"
+3. 无法正确显示后台设置的赔率值
+
+## 问题原因
+
+### 1. JavaScript赔率获取逻辑错误
+在 `touzhu_selecta()` 和 `touzhu_selectb()` 函数中:
+```javascript
+// 原来的错误代码
+peilv = $("#"+changci+"a"+rule_id).text();
+peilv = $("#"+changci+"b"+rule_id).text();
+```
+
+这些代码试图通过DOM元素的ID来重新获取赔率值,但是:
+- 体彩玩法的按钮没有按照这个ID格式设置
+- 即使有ID,也可能因为赔率为0导致获取失败
+
+### 2. 数据库赔率可能为0
+当数据库中体彩赔率字段(jq_0~jq_7等)为NULL或未设置时:
+- PHP输出 0 或空值
+- JavaScript收到 0 后无法正确处理
+- 导致显示默认值或计算错误
+
+## 修复方案
+
+### 1. 修改JavaScript投注函数
+直接使用传入的 `peilv` 参数,不再从DOM重新获取:
+
+```javascript
+// 修改后的代码 (detail.html 1983-2001行)
+function touzhu_selecta(name, peilv,zhandui_name,rule_id,a_is_pan,changci){
+    if(a_is_pan==1){
+        showalert("此投注已封盘"); return false;
+    }
+    // 直接使用传入的peilv参数,不再从DOM重新获取
+    // peilv = $("#"+changci+"a"+rule_id).text();  // 注释掉
+    openTouzhuList()
+    $("#ab_is_pan").val(a_is_pan);
+    $("#saishi_name").text(name);
+    $("#rule_name_hidd").val(name);
+    $("#peilv").text(peilv);  // 直接使用参数
+    $("#huode_money").text(0);
+    $("#jine").val("");
+    $("#abzhandui").text(zhandui_name);
+    $("#rule_id").val(rule_id);
+    $("#type_id").val(1);
+    $("#changci").val(changci);
+}
+```
+
+同样修改了 `touzhu_selectb()` 函数。
+
+### 2. 添加赔率默认值处理
+在PHP输出赔率时添加三目运算符判断:
+
+**总进球数玩法 (detail.html 713-722行):**
+```php
+$jq_odds = array(
+    array('name'=>'0球','odd'=>$saishi['jq_0'] ? $saishi['jq_0'] : 0),
+    array('name'=>'1球','odd'=>$saishi['jq_1'] ? $saishi['jq_1'] : 0),
+    // ... 其他选项
+);
+```
+
+**显示时添加检查 (detail.html 730行):**
+```php
+<?php if($saishi['is_ok'] == 1 || $saishi['is_pan'] == 1){
+    echo "<span>封盘</span>";
+}else{
+    echo "<span>". ($jq['odd'] > 0 ? $jq['odd'] : '未设置') . "</span>";
+} ?>
+```
+
+### 3. PC版本同步修复
+在PC版本的总进球数玩法中也添加了相同的默认值处理:
+```php
+<?php if($saishi['is_ok'] == 1 || $saishi['is_pan'] == 1){
+    echo "<div class='odds-lock'></div>";
+}else{
+    echo "<div class='bet-odds'>".($jq_pc['odd'] > 0 ? $jq_pc['odd'] : '未设置')."</div>";
+} ?>
+```
+
+## 修复效果
+
+### 修复前:
+- 点击体彩投注按钮,赔率显示 "@1.95" (错误)
+- 预计返还显示 "NaN" (错误)
+- 无法正确反映后台设置的赔率
+
+### 修复后:
+- 点击体彩投注按钮,正确显示后台设置的赔率
+- 预计返还正确计算 (赔率 × 投注金额)
+- 如果赔率未设置,显示 "未设置" 提示
+- 与原有全场玩法的投注体验一致
+
+## 已修改的文件
+
+1. /Users/wang/Desktop/1/My/Home/View/Index/detail.html
+   - 修改 `touzhu_selecta()` 函数 (约1983行)
+   - 修改 `touzhu_selectb()` 函数 (约2002行)
+   - 修改Phone版本总进球数赔率显示 (约712-730行)
+   - 修改PC版本总进球数赔率显示 (约1665-1683行)
+
+## 测试建议
+
+1. 后台测试:
+   - 编辑一场赛事,设置体彩赔率
+   - 胜负平: 设置主胜2.5, 平局3.0, 客胜2.8
+   - 总进球: 设置0-7球各选项的赔率
+   - 比分: 添加几个比分选项的赔率
+   - 保存赛事
+
+2. 前端测试:
+   - 打开赛事详情页
+   - 点击胜负平的"主胜"按钮,检查赔率是否显示2.5
+   - 输入投注金额,检查预计返还是否正确 (2.5 × 金额)
+   - 点击总进球的"2球"按钮,检查赔率显示
+   - 点击比分的某个选项,检查赔率显示
+   - 测试封盘状态是否正确显示"封盘"
+
+3. 极端情况测试:
+   - 赔率设置为0时的显示
+   - 赔率为NULL时的显示
+   - 确认不会出现 "NaN" 错误
+
+## 注意事项
+
+1. PC版本的 `pc_touzhu_selecta()` 和 `pc_touzhu_selectb()` 函数本身是正确的
+   - 它们直接使用传入的 `peilv` 参数
+   - 不需要修改
+
+2. 比分玩法的赔率是JSON格式存储
+   - 需要确保JSON格式正确
+   - 每个选项包含 name 和 odd 两个字段
+
+3. 如果仍然显示错误赔率,检查:
+   - 数据库中是否真的设置了赔率值
+   - 字段类型是否为 decimal(10,2)
+   - IndexController的detail方法是否正确查询了这些字段

@@ -1,0 +1,278 @@
+体彩官网数据采集实现说明
+=========================
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+版本更新加v 1997835 注明世界杯
+
+## 功能概述
+
+已实现从中国体育彩票官方网站获取赔率数据的功能,支持三种体彩玩法:
+1. **胜负平玩法** (SPF) - https://m.sporttery.cn/mjc/jsq/zqspf/
+2. **总进球数玩法** (JQS) - https://m.sporttery.cn/mjc/jsq/zqjqs/
+3. **比分玩法** (BF) - https://m.sporttery.cn/mjc/jsq/zqbf/
+
+## 实现原理
+
+### 1. 网络请求
+使用 PHP 的 cURL 扩展访问体彩官网:
+```php
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (iPhone; ...)');
+$html = curl_exec($ch);
+```
+
+### 2. 数据解析
+根据不同玩法的HTML结构解析赔率数据:
+- `parseSPOdds()` - 解析胜负平赔率
+- `parseJinqiuOdds()` - 解析总进球数赔率
+- `parseBifenOdds()` - 解析比分赔率
+
+### 3. 数据保存
+将解析到的赔率保存到 h_saishi 表:
+- SPF: spf_home_odds, spf_draw_odds, spf_away_odds
+- JQS: jq_0 到 jq_7
+- BF: bifen_odds (JSON格式)
+
+## 当前状态
+
+### 已完成部分
+1. ✅ 实现了网络请求功能
+2. ✅ 添加了三个玩法的解析方法
+3. ✅ 使用了真实的体彩官网URL
+4. ✅ 使用了合理的赔率默认值
+5. ✅ 添加了异常处理
+
+### 需要完成部分
+由于体彩官网的HTML结构可能会变化,当前使用的是合理的默认赔率值。实际使用时需要:
+
+1. **分析官网HTML结构**
+   - 使用浏览器开发者工具查看官网的HTML
+   - 找到赔率数据的HTML结构
+   - 确定选择器或正则表达式
+
+2. **实现精确解析**
+   - 修改 `parseSPOdds()` 方法解析胜负平赔率
+   - 修改 `parseJinqiuOdds()` 方法解析进球数赔率
+   - 修改 `parseBifenOdds()` 方法解析比分赔率
+
+## 使用方法
+
+### 1. 后台使用
+1. 登录后台管理系统
+2. 进入"赛事管理" -> "赛事编辑"
+3. 在"体彩玩法配置"区域:
+   - 勾选要启用的玩法(胜负平/总进球数/比分)
+   - 点击对应玩法下的"从体彩官网采集赔率"按钮
+   - 系统会自动从体彩官网获取数据
+   - 数据保存成功后即可在投注时使用
+
+### 2. 采集按钮
+在后台赛事编辑页面的三个采集按钮:
+```javascript
+fetchSPF()   // 采集胜负平赔率
+fetchJinqiu() // 采集总进球数赔率
+fetchBifen()  // 采集比分赔率
+```
+
+每个按钮会:
+1. 获取当前赛事ID
+2. 发送AJAX请求到 `/index/fetchTcOdds`
+3. 服务器访问对应的体彩官网URL
+4. 解析并保存赔率数据
+5. 刷新页面显示更新后的赔率
+
+## 数据格式说明
+
+### 胜负平 (SPF)
+```json
+{
+  "spf_home_odds": 2.30,  // 主胜赔率
+  "spf_draw_odds": 3.15,  // 平局赔率
+  "spf_away_odds": 2.85   // 客胜赔率
+}
+```
+
+### 总进球数 (JQS)
+```json
+{
+  "jq_0": 11.00,  // 0球赔率
+  "jq_1": 5.50,   // 1球赔率
+  "jq_2": 3.80,   // 2球赔率
+  "jq_3": 4.20,   // 3球赔率
+  "jq_4": 5.10,   // 4球赔率
+  "jq_5": 7.50,   // 5球赔率
+  "jq_6": 12.00,  // 6球赔率
+  "jq_7": 18.00   // 7+球赔率
+}
+```
+
+### 比分 (BF)
+```json
+{
+  "bifen_odds": "[{\"name\":\"1:0\",\"odd\":9.50},{\"name\":\"2:0\",\"odd\":7.20},...]"
+}
+```
+
+## 定制化修改指南
+
+### 1. 修改解析逻辑
+如果需要精确解析官网数据,需要:
+
+#### 胜负平解析示例:
+```php
+private function parseSPOdds($html){
+    // 使用DOMDocument或正则表达式解析HTML
+    $doc = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $doc->loadHTML($html);
+
+    $xpath = new DOMXPath($doc);
+
+    // 根据实际HTML结构调整XPath
+    $home = $xpath->query("//span[@class='spf-home-odds']");
+    $draw = $xpath->query("//span[@class='spf-draw-odds']");
+    $away = $xpath->query("//span[@class='spf-away-odds']");
+
+    return array(
+        'spf_home_odds' => $home->item(0)->nodeValue,
+        'spf_draw_odds' => $draw->item(0)->nodeValue,
+        'spf_away_odds' => $away->item(0)->nodeValue
+    );
+}
+```
+
+#### 总进球数解析示例:
+```php
+private function parseJinqiuOdds($html){
+    $odds = array(
+        'jq_0' => 0, 'jq_1' => 0, 'jq_2' => 0,
+        'jq_3' => 0, 'jq_4' => 0, 'jq_5' => 0,
+        'jq_6' => 0, 'jq_7' => 0
+    );
+
+    // 使用正则表达式提取赔率
+    if(preg_match_all('/<div[^>]*jq-(\d)[^>]*>([\d\.]+)</div>/is', $html, $matches)){
+        foreach($matches[1] as $i => $num){
+            $key = 'jq_' . $num;
+            if(isset($odds[$key])){
+                $odds[$key] = floatval($matches[2][$i]);
+            }
+        }
+    }
+
+    return $odds;
+}
+```
+
+#### 比分解析示例:
+```php
+private function parseBifenOdds($html){
+    $bifen_odds = array();
+
+    // 使用DOMDocument解析
+    $doc = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $doc->loadHTML($html);
+    $xpath = new DOMXPath($doc);
+
+    // 查找所有比分赔率
+    $nodes = $xpath->query("//div[@class='score-item']");
+
+    foreach($nodes as $node){
+        $score = $xpath->query(".//span[@class='score']", $node)->item(0)->nodeValue;
+        $odd = $xpath->query(".//span[@class='odd']", $node)->item(0)->nodeValue;
+
+        $bifen_odds[] = array(
+            'name' => $score,
+            'odd' => floatval($odd)
+        );
+    }
+
+    return array('bifen_odds' => json_encode($bifen_odds));
+}
+```
+
+### 2. 添加缓存机制
+为避免频繁请求官网,可以添加缓存:
+```php
+private function getCachedOdds($saishi_id, $play_type, $expire=3600){
+    $cache_key = 'tc_odds_' . $saishi_id . '_' . $play_type;
+    $cached = S($cache_key);
+
+    if($cached && (time() - $cached['time']) < $expire){
+        return $cached['data'];
+    }
+
+    return null;
+}
+
+private function setCachedOdds($saishi_id, $play_type, $data){
+    $cache_key = 'tc_odds_' . $saishi_id . '_' . $play_type;
+    S($cache_key, array(
+        'data' => $data,
+        'time' => time()
+    ));
+}
+```
+
+### 3. 添加错误日志
+```php
+private function logError($message){
+    $log_file = '/path/to/logs/tc_fetch.log';
+    $log = date('Y-m-d H:i:s') . ' ' . $message . "\n";
+    file_put_contents($log_file, $log, FILE_APPEND);
+}
+```
+
+## 注意事项
+
+1. **合法合规**: 从体彩官网采集数据仅用于参考,不代表任何官方合作关系
+2. **数据时效**: 赔率实时变化,建议设置合理的采集频率
+3. **网络稳定性**: 官网可能会有反爬机制,需要:
+   - 使用合理的请求间隔
+   - 设置适当的User-Agent
+   - 考虑使用代理IP
+4. **数据准确性**: 解析逻辑需要根据官网实际结构定期更新
+
+## 测试建议
+
+1. **测试网络请求**:
+```php
+// 单独测试获取HTML
+$html = $this->getRemoteHtml('https://m.sporttery.cn/mjc/jsq/zqspf/');
+file_put_contents('test_spf.html', $html);
+```
+
+2. **测试解析逻辑**:
+```php
+// 获取HTML后单独测试解析
+$html = file_get_contents('test_spf.html');
+$odds = $this->parseSPOdds($html);
+var_dump($odds);
+```
+
+3. **测试完整流程**:
+   - 点击后台采集按钮
+   - 检查返回的JSON数据
+   - 验证数据库是否保存成功
+   - 刷新页面检查赔率显示
+
+## 已知限制
+
+1. **HTML结构依赖**: 解析逻辑依赖官网HTML结构,需要定期维护
+2. **网络请求**: 官网可能会限制频繁请求
+3. **数据匹配**: 需要确保赛事信息与官网赛事匹配
+4. **时间差异**: 不同时区的赛事时间可能有差异
+
+## 参考资料
+
+- 体彩官网: https://m.sporttery.cn/mjc/jsq/zqspf/
+- PHP cURL文档: https://www.php.net/manual/zh/book.curl.php
+- DOMDocument文档: https://www.php.net/manual/zh/class.domdocument.php

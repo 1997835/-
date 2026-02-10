@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单测试页面</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .test-item { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        a { color: blue; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>简单测试页面</h1>
+    
+    <div class="test-item">
+        <h2>1. HTML访问测试</h2>
+        <p class="success">✓ HTML页面访问成功</p>
+        <p>当前时间: <span id="current-time"></span></p>
+    </div>
+    
+    <div class="test-item">
+        <h2>2. PHP访问测试</h2>
+        <ul>
+            <li><a href="/hello.php" target="_blank">简单PHP测试</a></li>
+            <li><a href="/test_php.php" target="_blank">PHP信息测试</a></li>
+            <li><a href="/index.php?debug" target="_blank">ThinkPHP调试信息</a></li>
+        </ul>
+    </div>
+    
+    <div class="test-item">
+        <h2>3. ThinkPHP访问测试</h2>
+        <ul>
+            <li><a href="/index.php" target="_blank">ThinkPHP入口</a></li>
+            <li><a href="/index.php?s=/Home/Index/index" target="_blank">显式调用Home控制器</a></li>
+        </ul>
+    </div>
+    
+    <script>
+        // 显示当前时间
+        function updateTime() {
+            var now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

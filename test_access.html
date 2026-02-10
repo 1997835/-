@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站访问测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .test-link { display: inline-block; margin: 10px 10px 10px 0; padding: 10px 20px; background: #f0f0f0; text-decoration: none; color: #333; border-radius: 3px; }
+        .test-link:hover { background: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <h1>网站访问测试</h1>
+    
+    <div class="test-section">
+        <h2>1. HTML文件访问</h2>
+        <p class="success">✓ HTML文件访问成功！</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. PHP文件访问</h2>
+        <a href="/test_php.php" class="test-link" target="_blank">测试PHP信息</a>
+        <a href="/test_url.php" class="test-link" target="_blank">测试URL重写</a>
+        <a href="/index.php" class="test-link" target="_blank">测试ThinkPHP入口</a>
+        <a href="/index.php?debug" class="test-link" target="_blank">测试ThinkPHP调试</a>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. 静态资源访问</h2>
+        <a href="/Public/css/bootstrap.min.css" class="test-link" target="_blank">测试CSS文件</a>
+        <a href="/Public/js/jquery.js" class="test-link" target="_blank">测试JS文件</a>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. 网站首页</h2>
+        <a href="/" class="test-link" target="_blank">访问网站首页</a>
+    </div>
+</body>
+</html>

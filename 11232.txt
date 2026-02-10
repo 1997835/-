@@ -1,0 +1,8 @@
+Array
+(
+    [token] => 26334BAF88F41ED0DBEFA0977078F552
+    [order_id] => 20200608151736498705
+    [integral] => 1.00
+    [real_integral] => 1.00
+    [results_code] => 1
+)
